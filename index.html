@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>席替えアプリ</title>
+  <style>
+    body {
+      font-family: 'Arial', sans-serif;
+      background-color: #f0f2f5;
+      margin: 0;
+      padding: 20px;
+    }
+    h1 {
+      text-align: center;
+      color: #333;
+      margin-bottom: 40px;
+    }
+    .controls {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .controls input[type="file"] {
+      margin-bottom: 10px;
+    }
+    .controls button {
+      margin: 0 5px;
+      padding: 10px 20px;
+      font-size: 16px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      background-color: #4CAF50;
+      color: white;
+      transition: background-color 0.3s ease;
+    }
+    .controls button:hover {
+      background-color: #45a049;
+    }
+    .label-row {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 10px;
+    }
+    .label-row .label {
+      font-size: 26px;
+      font-weight: bold;
+      text-align: center;
+      width: 100%;
+      margin: 10px 0;
+    }
+    .seating {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 8px;
+      justify-content: center;
+      max-width: 600px;
+      margin: 0 auto 20px;
+    }
+    .seat {
+      width: 100%;
+      padding-top: 100%;
+      position: relative;
+      background-color: #ffffff;
+      border: 2px solid #ccc;
+      border-radius: 8px;
+      text-align: center;
+      cursor: pointer;
+      transition: background-color 0.3s, transform 0.3s;
+      overflow: hidden;
+    }
+    .seat-content {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 90%;
+      height: 90%;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      overflow: hidden;
+    }
+    .seat-number {
+      font-size: clamp(10px, 1.5vw, 14px);
+      font-weight: bold;
+      line-height: 1.2;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .seat-name {
+      font-size: clamp(10px, 2vw, 14px);
+      line-height: 1.2;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .excluded {
+      background-color: #ddd;
+    }
+    .finalized {
+      background-color: #90ee90 !important;
+    }
+    @media print {
+      body {
+        background-color: white;
+      }
+      .controls {
+        display: none;
+      }
+      .seat {
+        page-break-inside: avoid;
+      }
+    }
+  </style>
+</head>
+<body>
+  <h1>席替えアプリ</h1>
+  <div class="controls">
+    <input type="file" id="csvFile" accept=".csv" />
+    <button onclick="startShuffle()">席替えスタート</button>
+    <button onclick="clearSeating()">クリア</button>
+  </div>
+  <div class="label-row">
+    <div class="label">前方</div>
+  </div>
+  <div class="seating" id="seating"></div>
+  <div class="label-row">
+    <div class="label">後方</div>
+  </div>
+
+  <script>
+    const seatingArea = document.getElementById('seating');
+    const studentList = [];
+    const seats = [];
+    let interval;
+
+    for (let i = 0; i < 36; i++) {
+      const seat = document.createElement('div');
+      seat.classList.add('seat');
+      seat.dataset.index = i;
+      seat.onclick = () => {
+        seat.classList.toggle('excluded');
+      };
+
+      const content = document.createElement('div');
+      content.classList.add('seat-content');
+
+      const number = document.createElement('div');
+      number.classList.add('seat-number');
+
+      const name = document.createElement('div');
+      name.classList.add('seat-name');
+
+      content.appendChild(number);
+      content.appendChild(name);
+      seat.appendChild(content);
+      seatingArea.appendChild(seat);
+      seats.push(seat);
+    }
+
+    function clearSeating() {
+      studentList.length = 0;
+      seats.forEach(seat => {
+        seat.classList.remove('excluded', 'finalized');
+        const content = seat.querySelector('.seat-content');
+        content.querySelector('.seat-number').textContent = '';
+        content.querySelector('.seat-name').textContent = '';
+      });
+    }
+
+    function startShuffle() {
+      const availableSeats = seats.filter(seat => !seat.classList.contains('excluded'));
+      if (studentList.length === 0) {
+        alert('CSVファイルを読み込んでください。');
+        return;
+      }
+      if (studentList.length > availableSeats.length) {
+        alert('生徒数が席数を超えています。');
+        return;
+      }
+
+      let i = 0;
+      interval = setInterval(() => {
+        const tempList = [...studentList];
+        const shuffled = [];
+        while (tempList.length) {
+          const index = Math.floor(Math.random() * tempList.length);
+          shuffled.push(tempList.splice(index, 1)[0]);
+        }
+
+        availableSeats.forEach((seat, index) => {
+          const content = seat.querySelector('.seat-content');
+          if (index < shuffled.length) {
+            content.querySelector('.seat-number').textContent = `${shuffled[index].id}`;
+            content.querySelector('.seat-name').textContent = `${shuffled[index].name}`;
+          } else {
+            content.querySelector('.seat-number').textContent = '';
+            content.querySelector('.seat-name').textContent = '';
+          }
+        });
+
+        i++;
+      }, 200);
+
+      setTimeout(() => {
+        clearInterval(interval);
+        availableSeats.forEach(seat => seat.classList.add('finalized'));
+      }, 5000);
+    }
+
+    document.getElementById('csvFile').addEventListener('change', function(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const lines = e.target.result.split(/\r?\n/);
+        studentList.length = 0;
+        lines.forEach(line => {
+          const [id, name] = line.split(',');
+          if (id && name) studentList.push({ id: id.trim(), name: name.trim() });
+        });
+      };
+      reader.readAsText(file);
+    });
+  </script>
+</body>
+</html>
