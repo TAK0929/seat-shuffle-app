@@ -22,11 +22,13 @@
     }
     .controls input[type="file"] {
       margin-bottom: 10px;
+      font-size: 15px;
+      padding: 10px;
     }
     .controls button {
       margin: 0 5px;
       padding: 10px 20px;
-      font-size: 16px;
+      font-size: 15px;
       border: none;
       border-radius: 5px;
       cursor: pointer;
@@ -117,11 +119,13 @@
 </head>
 <body>
   <h1>席替えアプリ</h1>
+
   <div class="controls">
     <input type="file" id="csvFile" accept=".csv" />
     <button onclick="startShuffle()">席替えスタート</button>
     <button onclick="clearSeating()">クリア</button>
   </div>
+
   <div class="label-row">
     <div class="label">後方</div>
   </div>
